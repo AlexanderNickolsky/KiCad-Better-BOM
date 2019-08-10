@@ -27,7 +27,7 @@ selected just because it is large enough, and run the following command in the p
     python3 path/to/kicad_bom.py
 
 You're done! Here is the first BOM you generated. Open XLSX file using Excel or LibreOffice.
-We will use the project **A64-OlinuXino_Rev_E ** from now on. Now, what's this:
+We will use the project **A64-OlinuXino_Rev_E** from now on. Now, what's this:
 
 ![ANTENNA](img/ant.png)
 
