@@ -267,7 +267,7 @@ class Board:
         #    f.close()
         self.modules = []
         for l in self.brd:
-            if l[0] == 'module':
+            if l[0] == 'module' or l[0] == 'footprint':
                 m = Module(l)
                 for p in self.options.package_sub:
                     if re.match(p['match'],m.getPackage()):
