@@ -1,63 +1,75 @@
 # KiCad Better BOM
 
-Bill of material (BOM) generation feature of [KiCad](http://kicad-pcb.org/) leaves much to be desired.
-The most important flaw of it is that it does not support *any* kind of workflow. The typical process
-looks like this: edit PCB, generate BOM, import BOM into spreadsheet, edit BOM, edit PCB, etc.
+[The same text in English](https://github.com/AlexanderNickolsky/KiCad-Better-BOM)
 
-This BOM generator has been designed with workflow in mind and it (mostly) supports more convenient
-process, like: edit PCB, prepare config file, generate XLSX, edit PCB, generate XLSX, etc.
+Функция создания перечня компонентов в программе [KiCad](http://kicad-pcb.org/) оставляет желать
+много лучшего. Самый главный ее недостаток состоит в том, что она не дает никаких возможностей
+для повторного создания конечного продукта - списка компонентов. Обычно процесс создания BOM
+выглядит так: создали csv, открыли в Excel или Office, привели в приличный вид, поменяли что-то
+в печатной плате, опять создали csv, опять привели в приличный вид, и так далее.
 
-All typical changes to the resulting document are permanently stored in a config file. Let's see how
-it works.
+Эта программа позволяет при помощи настроечных файлов сразу создавать красиво выглядящие электронные
+таблицы запуском одного скрипта на Питоне. 
 
-## Installation
+Все необходимые настройки хранятся в одном конфигурационном файле. Это, кроме всего прочего, позволяет
+иметь набор таких файлов на уровне предприятия и создавать единообразную документацию к проектам.
 
-This program requires [Python3](http://python.org)  and one additional dependency, xlsxwriter.
-Install Python as described on the site and then install xlsxwriter by typing
+Давайте посмотрим, как это работает
+
+## Установка программы
+
+У вас на компьютере должен быть установлен [Python3](http://python.org) и в нем еще одна дополнительная
+библиотека под названием xlsxwriter. Чтобы ее установить, наберите в командной строке
 
     pip3 install --user xlsxwriter
 
-That's all. 
+и положите скрипт `kicad_bom.py` куда вам удобно.
+И все дела.
 
-## Basic use
+## Простейший случай использования
 
-Now let's download a free KiCad project [Olinuxino](https://github.com/OLIMEX/OLINUXINO/tree/master/HARDWARE/A64-OLinuXino)
-selected just because it is large enough, and run the following command in the project directory:
+Давайте проверим работу скрипта на проекте [Olinuxino](https://github.com/OLIMEX/OLINUXINO/tree/master/HARDWARE/A64-OLinuXino).
+Скачаем этот проект и запустим `kicad_bom.py` в том каталоге, где лежит проект.
 
     python3 path/to/kicad_bom.py
 
-You're done! Here is the first BOM you generated. Open XLSX file using Excel or LibreOffice.
-We will use the project **A64-OlinuXino_Rev_E ** from now on. Now, what's this:
+У нас получился первый список компонентов, который можно открыть в Excel или LibreOffice.
+Посмотрим, что в нем. Что это?
+
 
 ![ANTENNA](img/ant.png)
 
-It is PCB antenna, and we have no reason to include it in component list. Now make a file named `bom.cfg` in
-the same directory where the KiCad project is. Put the following lines there:
+Это печатная антенна, которая не является компонентом с точки зрения сборщиков, но является с точки зрения CAD.
+Уберем ее из списка. Для этого нужно создать в том же каталоге файл с именем `bom.cfg` и написать в нем следующее:
 
 ~~~config
 [ignore]
 reference(ANT1)
 ~~~
 
-Run the program again. Look, no more ANT1. It is possible to use regular expressions in the parentheses,
-so if we had several antennas, we could use 
+Запустим скрипт снова - в списке больше нет антенны! В конфиге можно писать регулярные выражения, так что если бы у нас
+было несколько антенн ANT1, ANT2 и так далее, можно было бы написать
 
     reference(ANT\d+)
 
-instead. Now let's introduce some terminology. Each component has several properties: `reference`, `package`, `value`,
-`library` (where this component came from), `side`. Each of these properties could be used in `[ignore]`  and other sections
-of `bom.cfg`. For example, to ignore all measurement points, one can use
+Теперь о том, как все это работает. У каждого компонента есть набор свойств, на которые в конфиге можно ссылаться:
+`reference` - это обозначение на принципиальной схеме, `package` - корпус компонента, `value` - номинал компонента,
+`library` - библиотека, откуда взят компонент, `side` - сторона печатной платы. Любое из этих свойств можно использовать
+в секции `[ignore]` и в любых других секциях настроечного файла. Например, если у нас на плате есть реперные точки из 
+библиотеки Fiducial, можно одной строчкой отправить в игнор всю библиотеку:
 
 ~~~config
 [ignore]
-library(Measurement_Points)
+library(Fiducial)
 ~~~
 
-Please note that all these names are case-sensitive. The program automatically ignores components with no references and with
-'~' references. It reports all components that are ignored, except for empty references. Thus it is possible to be sure that
-your regular expressions are not too smart and there are no necessary components ignored.
+Обратите внимание, что заглавные и строчные буквы во всех этих именах имеют значение, нельзя было бы написать fiducial вместо
+Fiducial. Также скрипт не учитывает компоненты без обозначений вообще и с обозначениями в виде `~`. Также при работе программы 
+выводится список всех проигнорированных компонетов, чтобы вы могли проверить, что не перестарались с регулярными выражениями и
+не выбросили из списка что-то важное.
 
-Now let's note that default column widths are not perfect for this project. The Type/Value column is too narrow. No problem.
+Посмотрим еще раз на полученный список. Он пока что не идеален, колонка Type/Value слишком узкая. Нет проблем. Добавим в конфиг
+все нужные нам колонки вывода:
 
 ~~~config
 [columns]
@@ -68,22 +80,33 @@ col4=Qty:quantity
 col5=Type/Value:value:30
 ~~~
 
-Columns are described as Name:property:width, width can be omitted, in which case default value will be used. Also
-this feature allows to assign arbitrary names to columns, i.e. in national language.
-
-It is also possible to create additional columns without contents, for later use. 
+Описание колонки выглядит как имя:свойство:ширина, ширину можно не писать, тогда будет использовано некое значение
+по умолчанию. Также это описание позволяет давать произвольные имена колонкам, например, на русском языке:
 
 ~~~config
-col6 = Supplier
-col7 = Price
-col8 = Comment
+[columns]
+col1=Номер п.п.:n
+col2=Обозначение:reference
+col3=Корпус:package
+col4=Количество:quantity
+col5=Номинал:value:30
 ~~~
 
-## Renaming packages
 
-Another important feature is package renaming. Many package names in KiCad have names with some special meanings, like
-`C_0402_5MIL_DWS` or `D_SOT-23_ANK` vs `D_SOT-23_NKA`. Component supplier will seldom need this NKA or ANK parts.
-So, the next section of the config allows to rename packages, like this:
+Также можно добавить дополнительные колонки с именами для каких-то целей.
+
+~~~config
+col6 = Поставщик
+col7 = Цена
+col8 = Комментарий
+~~~
+
+## Названия корпусов
+
+Еще одна важная задача - уметь праильно переименовывать корпуса компонентов. В Kicad есть множество корпусов
+со специальными названиями, такими как `C_0402_5MIL_DWS` or `D_SOT-23_ANK` vs `D_SOT-23_NKA`. Для закупки 
+компонентов или их монтажа части названия такие как `NKA` или `ANK` не имеют значения. Поэтому в конфиге есть
+секция packages, позволяющая переименовать корпуса.
 
 ~~~config
 [packages]
@@ -93,13 +116,14 @@ C_0402_5MIL_DWS = C_0402
 D_SOT-23_ANK = SOT-23
 ~~~
 
-and so on. Again, regular expressions can be useful. 
+В ней также можно использовать регулярные выражения.
 
-## Advanced usage: categories
+## Дополнительные возможности: категории
 
-Separating the BOM to categories like resistors, capacitors, connectors etc. is useful, it makes your document
-even more nice-looking, but the most important is that it allows you to make less mistakes. Introducing categories
-is simple - just add `[categories]` section to bom.cfg
+Полезно было бы разделить список компонентов также и по вертикали, перечислив отдельно резисторы, конденсаторы,
+и так далее. Поскольку телепатическими способностями программа не обладает, придется делать это в два этапа,
+сначала написать, к какой категории относится каждый компонент, а потом сделать список категорий.
+Имя категории это одно слово латинскими буквами:
 
 ~~~config
 [categories]
@@ -110,17 +134,18 @@ reference(J.+) = connectors
 reference(SW1) = pushbuttons
 ~~~
 
-As with ignore, it is possible to use all properties for classification. So far, not very useful, however the category
-is a property, and it can be added to columns:
+Для классификации компонентов можно использовать все имеющиеся у них свойства. Категория компонента сама является его
+свойством, и ее можно вывести в списке отдельной колонкой (хотя, похоже, что это не очень полезная функция)
 
 ~~~config
 col6=Element type:category
 ~~~
 
-If there is no category defined for the component, the corresponding field will be empty. By assigning categories to 
-components, it is possible to be sure that all components were considered, thought of, and classified (at least).
-It is also possible to split the BOM into sections according to the categories. Once more time: category is the property
-of the component, while section is a feature of the spreadsheet table. 
+Если так случилось, что компонент не попал ни в одну категорию, тогда соответствующее свойство будет пустым. И вот это
+очень важная особенность процесса задания категорий - для каждого компонента вы должны убедиться, что он куда-то отнесен
+и что вы вообще понимаете, что это такое.
+
+Теперь можно задать секции, в которых будут перечисляться компоненты
 
 ~~~config
 [sections]
@@ -130,11 +155,14 @@ transistors = Transistors
 diodes = Diodes
 ~~~
 
-Here the syntax is `category_name = Section_Header`. Everything that is not categorized appears at the end of the list
-**in ugly form**. 
+Еще раз: категория (category) это свойство, которое вы сами приписываете компоненту, а секция (section) это часть списка,
+в котором появятся компоненты, отнесенные к данной категории.
 
-## Rules
+Описание секции выглядит как `категория = Заголовок секции`. Все комопненты, которые не попали в категории, будут 
+перечислены в конце списка **без всякого фориатирования**.
 
-If you introduce `[columns]`, you **must** specify all columns, their headers and contents.
-If you introduce `[sections]`, you **must** provide categories for all components (except for those that are ignored)
+## Правила
+
+Если у вас в конфиге есть раздел  `[columns]`, вы **обязаны** описать все колонки.
+Если у вас в конфиге есть раздел `[sections]`, вы **обязаны** описать категории для всех компонентов (кроме тех, которые игнорируются)
 

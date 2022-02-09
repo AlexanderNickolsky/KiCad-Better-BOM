@@ -1,5 +1,7 @@
 # KiCad Better BOM
 
+[Этот текст на русском](https://github.com/AlexanderNickolsky/KiCad-Better-BOM/blob/master/readme_rus.md)
+
 Bill of material (BOM) generation feature of [KiCad](http://kicad-pcb.org/) leaves much to be desired.
 The most important flaw of it is that it does not support *any* kind of workflow. The typical process
 looks like this: edit PCB, generate BOM, import BOM into spreadsheet, edit BOM, edit PCB, etc.
