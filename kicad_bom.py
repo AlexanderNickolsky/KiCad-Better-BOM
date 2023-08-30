@@ -280,7 +280,7 @@ class Board:
             return True
         for i in self.options.ignore:
             a = module.getAttr(i['attr'])
-            if a and re.match(i['match'],a):
+            if a and re.fullmatch(i['match'],a):
                 print('Ignored',r)
                 return True
         return False
@@ -499,8 +499,10 @@ class Options:
             self.projectName = sys.argv[1]
         else:
             dirlist = glob.glob("*.pro")
+            if len(dirlist) == 0:
+                dirlist = glob.glob("*.kicad_pro") #ver 6
             if len(dirlist) == 1 and os.path.isfile(dirlist[0]):
-                self.projectName = dirlist[0].replace(".pro","")
+                self.projectName = dirlist[0].replace(".pro","").replace(".kicad_pro","")
             else:
                 print("Please specify the project")
                 exit(1)
