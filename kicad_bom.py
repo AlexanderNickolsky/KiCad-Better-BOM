@@ -180,14 +180,19 @@ class Module:
         print("no coord for "+pad)
         return []
     
-    def getCenter(self,origin=(0,0)):
+    def getCenter(self,origin=[0,0]):
         mod = self.getCoord()
-        return (round(mod[0]-origin[0],2), abs(round(origin[1]-mod[1],2)))
+        if len(origin) == 0:
+            origin = [0,0]
+        try: 
+            return (round(mod[0]-origin[0],2), abs(round(origin[1]-mod[1],2)))
+        except :
+            return [-1,-1]
     
     def isFiducial(self):
         if re.match(r"FID\d+",self.getRef()):
             return True
-        if self.getLib().startswith("Fiducials"):
+        if self.getLib().startswith("Fiducial"):
             return True
         for d in self.getDescr():
             if d.startswith("Fiducial"):
@@ -274,14 +279,15 @@ class Board:
                         m.package = p['repl']
                 self.modules.append(m)
                     
-    def ignore(self,module):
+    def ignore(self, module, report = True):
         r = module.getRef()
         if r == '~' or r == '':
             return True
         for i in self.options.ignore:
             a = module.getAttr(i['attr'])
             if a and re.fullmatch(i['match'],a):
-                print('Ignored',r)
+                if report:
+                    print('Ignored',r)
                 return True
         return False
        
@@ -440,10 +446,11 @@ class Board:
             if col['source'] == 'y':
                 col_y = c+1    
         worksheet.set_row(row, 25)
+        worksheet.write(row,col_x-1,'Fiducials',colhdrfmt)
         worksheet.write(row,col_x,'X',colhdrfmt)
         worksheet.write(row,col_y,'Y',colhdrfmt)
         row += 1
-        for m in self.modules:
+        for m in sorted(self.modules, key = lambda a: a.getCoord()[0]):
             if m.isFiducial():
                 coord = m.getCenter(origin)
                 worksheet.write(row,col_x,coord[0])
@@ -463,8 +470,8 @@ class Board:
             col += 1
         row += 1
         n = 1
-        for m in self.modules:
-            if not m.isFiducial() and m.isSMD():
+        for m in sorted(self.modules, key = lambda a: a.getCoord()[0]):
+            if not m.isFiducial() and not self.ignore(m,False) and m.isSMD():
                 coord = m.getCenter(origin)
                 col = 1
                 for c in self.options.pos_columns:
