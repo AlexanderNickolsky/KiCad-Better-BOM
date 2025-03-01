@@ -87,7 +87,11 @@ class Module:
         if not hasattr(self,'ref'):
             self.ref = ""
             for i in self.module:
+                # kicad 7
                 if isinstance(i,list) and i[0] == 'fp_text' and i[1] == 'reference':
+                    self.ref = i[2]
+                # kicad 9    
+                if isinstance(i,list) and i[0] == 'property' and i[1] == 'Reference':
                     self.ref = i[2]
         return self.ref
         
@@ -133,7 +137,11 @@ class Module:
         if not hasattr(self,'val'):
             self.val = ""
             for i in self.module:
+                # kicad 7
                 if isinstance(i,list) and i[0] == 'fp_text' and i[1] == 'value':
+                    self.val = i[2]
+                # kicad 9
+                if isinstance(i,list) and i[0] == 'property' and i[1] == 'Value':
                     self.val = i[2]
         return self.val
 
