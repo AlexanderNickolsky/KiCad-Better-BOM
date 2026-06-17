@@ -63,6 +63,7 @@ def listtonumbers(l):
 class Module:
     def __init__(self,mod):
         self.module = mod
+        self.properties = {}
         self.used = False
     
     def getAttr(self,attribute):
@@ -82,7 +83,19 @@ class Module:
             return self.getSide()    
         elif attribute == 'category':
             return self.elementCategory([])
-            
+        else:
+            return self.getProperty(attribute)
+
+    def getProperty(self,attr):
+        if not attr in self.properties:
+            self.properties[attr] = ''
+            for i in self.module:
+                # kicad 9 only
+                if isinstance(i,list) and i[0] == 'property' and i[1] == attr:
+                    self.properties[attr] = i[2]
+                    break
+        return self.properties[attr]
+
     def getRef(self):
         if not hasattr(self,'ref'):
             self.ref = ""
@@ -90,9 +103,11 @@ class Module:
                 # kicad 7
                 if isinstance(i,list) and i[0] == 'fp_text' and i[1] == 'reference':
                     self.ref = i[2]
+                    break
                 # kicad 9    
                 if isinstance(i,list) and i[0] == 'property' and i[1] == 'Reference':
                     self.ref = i[2]
+                    break
         return self.ref
         
     def getPackage(self):
@@ -313,6 +328,7 @@ class Board:
         return []
     
     def prepareContents(self):
+        defattrs = ['key','n', 'reference','package', 'value', 'quantity']
         sect = {}
         if self.hasSections():
             for s in self.options.sections:
@@ -330,16 +346,23 @@ class Board:
                 section = sect[c]
                 package = m.getPackage()
                 value = m.getValue()
-                found = False
                 for i in section:
                     if i['package'] == package and i['value'] == value:
                         i['quantity'] += 1
                         i['reference'].append(m.getRef())
-                        found = True
-                if not found:
+                        extra = {x: i[x] for x in i if x not in defattrs}
+                        for k,v in extra.items():
+                            p = m.getProperty(k)
+                            if p != "":
+                                if i[k] == "" or i[k] == None:
+                                    i[k] = p
+                                elif p != v:
+                                    print("Warning: different {0} field in modules {1}".format(k,i['reference']))
+                        break
+                else:
                     section.append(self.prepareModule(m))
         for m in self.modules:
-            if not m.used and not self.ignore(m):
+            if not m.used and not self.ignore(m,False):
                 if not '__default' in sect:
                     sect['__default'] = []
                 sect['__default'].append(self.prepareModule(m))
@@ -349,7 +372,7 @@ class Board:
             if len(self.options.sections) ==0:
                 sect[s] = sorted(sect[s],key = lambda x: x['reference'])
             else:
-                sect[s] = sorted(sect[s],key = lambda x: x['key'])        
+                sect[s] = sorted(sect[s],key = lambda x: str(x['key']))        
         self.contents = sect
         
     def prepareModule(self,module):

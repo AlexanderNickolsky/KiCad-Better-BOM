@@ -72,13 +72,37 @@ col5=Type/Value:value:30
 
 Columns are described as Name:property:width, width can be omitted, in which case default value will be used. Also
 this feature allows to assign arbitrary names to columns, i.e. in national language.
+It is possible to use any module property like Description or whatever you'd like to add in Kicad.
+
+Example:
+~~~config
+[columns]
+...
+col6=Description:Description
+col7=Supplier:Supplier
+~~~
+
+Please not that unlike "regular" properties such as reference or quantity, additional properties' names should
+be written exactly as they appear in Kicad, i.e. with proper letter case.
+
+However there are two important rules about additional properties.
+
+Rule 1: empty property values are completely ignored. At all. As if they are not there.
+Rule 2: if modules grouped together have different property values, a warning will be issued and only one of the property values will appear in the BOM
+
+Example - if you have 10 capacitors 1uF 10V and only one of them has "Panasonic" in the field named "Manufacturer"
+and all other 9 have this field empty, then the string "Panasonic" will appear in the BOM, no warning.
+Alternatively if you have 10 capacitors 1uF 10V, one of them has "Panasonic" and another one has "Murata" in that field,
+there will be warning, but only one value ("Panasonic" or "Murata", we do not know which one) will be in the resulting BOM.
+
+NB: only tested with Kicad 9
+
 
 It is also possible to create additional columns without contents, for later use. 
 
 ~~~config
-col6 = Supplier
-col7 = Price
-col8 = Comment
+col8 = Price
+col9 = Comment
 ~~~
 
 ## Renaming packages
@@ -95,12 +119,12 @@ C_0402_5MIL_DWS = C_0402
 D_SOT-23_ANK = SOT-23
 ~~~
 
-and so on. Again, regular expressions can be useful. 
+and so on. Again, regular expressions are your friends.
 
 ## Advanced usage: categories
 
 Separating the BOM to categories like resistors, capacitors, connectors etc. is useful, it makes your document
-even more nice-looking, but the most important is that it allows you to make less mistakes. Introducing categories
+even better looking, but the most important is that it allows you to avoid mistakes. Introducing categories
 is simple - just add `[categories]` section to bom.cfg
 
 ~~~config
@@ -121,7 +145,7 @@ col6=Element type:category
 
 If there is no category defined for the component, the corresponding field will be empty. By assigning categories to 
 components, it is possible to be sure that all components were considered, thought of, and classified (at least).
-It is also possible to split the BOM into sections according to the categories. Once more time: category is the property
+It is also possible to split the BOM into sections according to the categories. Again: category is the property
 of the component, while section is a feature of the spreadsheet table. 
 
 ~~~config
@@ -133,10 +157,11 @@ diodes = Diodes
 ~~~
 
 Here the syntax is `category_name = Section_Header`. Everything that is not categorized appears at the end of the list
-**in ugly form**. 
+**in deliberately ugly form**.
 
 ## Rules
 
 If you introduce `[columns]`, you **must** specify all columns, their headers and contents.
 If you introduce `[sections]`, you **must** provide categories for all components (except for those that are ignored)
 
+No defaults here.
